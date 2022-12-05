@@ -16,7 +16,7 @@ namespace Utils {
 	}
 }
 
-void Renderer::Render(glm::vec3 SphereColor, glm::vec3 LightDirection, const Camera& camera)
+void Renderer::Render(glm::vec3 LightDirection, const Camera& camera, const Scene& scene)
 {
 	const glm::vec3& cameraPosition = camera.GetPosition();
 	Ray ray;
@@ -35,7 +35,7 @@ void Renderer::Render(glm::vec3 SphereColor, glm::vec3 LightDirection, const Cam
 
 
 
-			glm::vec4 color = TraceRay(ray, SphereColor, LightDirection);
+			glm::vec4 color = TraceRay(ray, scene, LightDirection);
 			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
 			m_ImageData[x+y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
 
@@ -66,13 +66,15 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 
 }
 
-glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec3 SphereColor, glm::vec3 LightDirection)
+glm::vec4 Renderer::TraceRay(const Ray& ray, const Scene& scene, glm::vec3 LightDirection)
 {
 
-	//glm::vec3 rayorigin(0.0f,0.0f, 1.0f);
-	//glm::vec3 raydirection(ray.x, coord.y, -1.0f);
-	float radius = 0.5f;
+	if (scene.Spheres.size() == 0)
+	{
+		return glm::vec4(0, 0, 0, 1);
+	}
 
+	const Sphere& sphere = scene.Spheres[0];
 
 	// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 -r^2)
 	// a = ray origin
@@ -80,21 +82,19 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec3 SphereColor, glm::vec3 Li
 	// r = radius
 	// t = hit distance
 
-	float A = glm::dot(ray.Direction, ray.Direction); //the first part of the quadratic equation
-	float B = 2.0f * glm::dot(ray.Origin, ray.Direction);
-	float C = glm::dot(ray.Origin, ray.Origin) - radius * radius;
 
+
+	glm::vec3 Origin = ray.Origin - sphere.Position;
+
+	float A = glm::dot(ray.Direction, ray.Direction); //the first part of the quadratic equation
+	float B = 2.0f * glm::dot(Origin, ray.Direction);
+	float C = glm::dot(Origin, Origin) - sphere.Radius * sphere.Radius;
 
 
 	// quadratic formula discriminant: b^2 - 4ac
 
 	float discriminant = B * B - 4.0f * A * C;
 
-	/*if (discriminant >= 0)
-	{
-		return glm::vec4(1, 0, 1, 1);
-	}
-	return glm::vec4(0, 0, 0, 1);*/
 
 	if (discriminant < 0)//if the discriminant is less than zero return black as the pixel is not part of the sphere
 	{
@@ -107,8 +107,8 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec3 SphereColor, glm::vec3 Li
 	float t0 = (-B + sqrt(discriminant)) / (2 * A);//furthest t
 	float t1 = (-B - sqrt(discriminant)) / (2 * A);//closest t
 
-	glm::vec3 h0 = ray.Origin + ray.Direction * t0;
-	glm::vec3 h1 = ray.Origin + ray.Direction * t1;
+	glm::vec3 h0 = Origin + ray.Direction * t0;
+	glm::vec3 h1 = Origin + ray.Direction * t1;
 
 	glm::vec3 normal = glm::normalize(h1);
 
@@ -127,8 +127,9 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec3 SphereColor, glm::vec3 Li
 	//	spherecolor *= d;
 	//}
 	
-	/*glm::vec3 spherecolor(0, 1, 1);*/
-	SphereColor *= d;
-	return glm::vec4(SphereColor, 1.0f);
+	glm::vec3 spherecolor;
+	spherecolor = sphere.Albedo;
+	spherecolor *= d;
+	return glm::vec4(spherecolor, 1.0f);
 
 }
