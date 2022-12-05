@@ -6,19 +6,26 @@
 #include "Walnut/Timer.h"
 #include "glm/glm.hpp"
 #include "Renderer.h"
-
+#include "Camera.h"
 
 using namespace Walnut;
 
 class ExampleLayer : public Walnut::Layer
 {
 private: 
+	Camera m_Camera;
 	Renderer m_Renderer;
 	float m_LastRenderTime = 0.0f;
 	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
 	glm::vec3 m_SphereColor;
 	glm::vec3 m_LightDirection;
 public:
+	ExampleLayer()
+		: m_Camera(45.0f, 0.1f, 100.f){}
+	virtual void OnUpdate(float ts) override
+	{
+		m_Camera.OnUpdate(ts);
+	}
 	virtual void OnUIRender() override
 	{
 		ImGui::Begin("Settings");
@@ -48,9 +55,6 @@ public:
 
 		ImGui::End();
 
-
-
-		
 		/*glm::vec3 SphereColor = Color;*/
 		
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -76,7 +80,8 @@ public:
 		Timer timer;
 
 		m_Renderer.OnResize(m_ViewportWidth, m_ViewportHeight);
-		m_Renderer.Render(m_SphereColor , m_LightDirection);
+		m_Camera.OnResize(m_ViewportWidth, m_ViewportHeight);
+		m_Renderer.Render(m_SphereColor , m_LightDirection, m_Camera);
 
 		m_LastRenderTime = timer.ElapsedMillis();
 	}

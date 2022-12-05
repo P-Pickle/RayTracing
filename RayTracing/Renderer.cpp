@@ -16,8 +16,12 @@ namespace Utils {
 	}
 }
 
-void Renderer::Render(glm::vec3 SphereColor, glm::vec3 LightDirection)
+void Renderer::Render(glm::vec3 SphereColor, glm::vec3 LightDirection, const Camera& camera)
 {
+	const glm::vec3& cameraPosition = camera.GetPosition();
+	Ray ray;
+	ray.Origin = cameraPosition;
+
 	//Render every pixel
 	for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
 	{
@@ -25,9 +29,13 @@ void Renderer::Render(glm::vec3 SphereColor, glm::vec3 LightDirection)
 		for (int x = 0; x < m_FinalImage->GetWidth(); x++)
 		{
 
-			glm::vec2 coord = { (float)x / (float)m_FinalImage->GetWidth(), (float)y / (float)m_FinalImage->GetHeight() };
-			coord = coord * 2.0f - 1.0f; // -1 -> 1
-			glm::vec4 color = PerPixel(coord, SphereColor, LightDirection);
+			//glm::vec2 coord = { (float)x / (float)m_FinalImage->GetWidth(), (float)y / (float)m_FinalImage->GetHeight() };
+			//coord = coord * 2.0f - 1.0f; // -1 -> 1
+			ray.Direction = camera.GetRayDirections()[x + y * m_FinalImage->GetWidth()];
+
+
+
+			glm::vec4 color = TraceRay(ray, SphereColor, LightDirection);
 			color = glm::clamp(color, glm::vec4(0.0f), glm::vec4(1.0f));
 			m_ImageData[x+y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(color);
 
@@ -58,15 +66,13 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 
 }
 
-glm::vec4 Renderer::PerPixel(glm::vec2 coord, glm::vec3 SphereColor, glm::vec3 LightDirection)
+glm::vec4 Renderer::TraceRay(const Ray& ray, glm::vec3 SphereColor, glm::vec3 LightDirection)
 {
-	//uint8_t r = (uint8_t)(coord.x * 255.0f);
-	//uint8_t g = (uint8_t)(coord.y * 255.0f);
 
-	glm::vec3 rayorigin(0.0f,0.0f, 1.0f);
-	glm::vec3 raydirection(coord.x, coord.y, -1.0f);
+	//glm::vec3 rayorigin(0.0f,0.0f, 1.0f);
+	//glm::vec3 raydirection(ray.x, coord.y, -1.0f);
 	float radius = 0.5f;
-	/*raydirection = glm::normalize(raydirection);*/
+
 
 	// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 -r^2)
 	// a = ray origin
@@ -74,9 +80,9 @@ glm::vec4 Renderer::PerPixel(glm::vec2 coord, glm::vec3 SphereColor, glm::vec3 L
 	// r = radius
 	// t = hit distance
 
-	float A = glm::dot(raydirection, raydirection); //the first part of the quadratic equation
-	float B = 2.0f * glm::dot(rayorigin, raydirection);
-	float C = glm::dot(rayorigin, rayorigin) - radius * radius;
+	float A = glm::dot(ray.Direction, ray.Direction); //the first part of the quadratic equation
+	float B = 2.0f * glm::dot(ray.Origin, ray.Direction);
+	float C = glm::dot(ray.Origin, ray.Origin) - radius * radius;
 
 
 
@@ -101,8 +107,8 @@ glm::vec4 Renderer::PerPixel(glm::vec2 coord, glm::vec3 SphereColor, glm::vec3 L
 	float t0 = (-B + sqrt(discriminant)) / (2 * A);//furthest t
 	float t1 = (-B - sqrt(discriminant)) / (2 * A);//closest t
 
-	glm::vec3 h0 = rayorigin + raydirection * t0;
-	glm::vec3 h1 = rayorigin + raydirection * t1;
+	glm::vec3 h0 = ray.Origin + ray.Direction * t0;
+	glm::vec3 h1 = ray.Origin + ray.Direction * t1;
 
 	glm::vec3 normal = glm::normalize(h1);
 
