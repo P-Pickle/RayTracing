@@ -25,11 +25,20 @@ public:
 	ExampleLayer()
 		: m_Camera(45.0f, 0.1f, 100.f)
 	{
-		Sphere sphere;
-		sphere.Position = { 0.0f,0.0f,0.0f };
-		sphere.Radius = 0.5f;
-		sphere.Albedo = { 0.0f,1.0f,1.0f };
-		m_Scene.Spheres.push_back(sphere);
+		{
+			Sphere sphere;
+			sphere.Position = { 0.0f,0.0f,0.0f };
+			sphere.Radius = 0.5f;
+			sphere.Albedo = { 0.0f,1.0f,1.0f };
+			m_Scene.Spheres.push_back(sphere);
+		}
+		{
+			Sphere sphere;
+			sphere.Position = { 1.0f,0.0f,-5.0f };
+			sphere.Radius = 1.5f;
+			sphere.Albedo = { 1.0f,0.0f,1.0f };
+			m_Scene.Spheres.push_back(sphere);
+		}
 	}
 	virtual void OnUpdate(float ts) override
 	{
@@ -46,13 +55,19 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Scene");
-		ImGui::Text("Sphere Color:");
+		for (size_t x = 0; x < m_Scene.Spheres.size(); x++)
+		{
+			ImGui::PushID(x);
 
-		ImGui::DragFloat3("Position", glm::value_ptr(m_Scene.Spheres[0].Position), 0.1f);
-		ImGui::DragFloat("Radius", &m_Scene.Spheres[0].Radius, 0.1f);
-		ImGui::ColorEdit3("Color", glm::value_ptr(m_Scene.Spheres[0].Albedo));
-		ImGui::DragFloat3("Light Direction", glm::value_ptr(m_LightDirection), 0.1f);
+			Sphere& sphere = m_Scene.Spheres[x];
+			ImGui::Text("Sphere %d:", x+1);
+			ImGui::DragFloat3("Position", glm::value_ptr(sphere.Position), 0.1f);
+			ImGui::DragFloat("Radius", &sphere.Radius, 0.1f);
+			ImGui::ColorEdit3("Color", glm::value_ptr(sphere.Albedo));
+			ImGui::DragFloat3("Light Direction", glm::value_ptr(m_LightDirection), 0.1f);
 
+			ImGui::PopID();
+		}
 		ImGui::End();
 
 		/*glm::vec3 SphereColor = Color;*/

@@ -74,41 +74,53 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, const Scene& scene, glm::vec3 Light
 		return glm::vec4(0, 0, 0, 1);
 	}
 
-	const Sphere& sphere = scene.Spheres[0];
-
-	// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 -r^2)
-	// a = ray origin
-	// b = ray directrion
-	// r = radius
-	// t = hit distance
-
-
-
-	glm::vec3 Origin = ray.Origin - sphere.Position;
-
-	float A = glm::dot(ray.Direction, ray.Direction); //the first part of the quadratic equation
-	float B = 2.0f * glm::dot(Origin, ray.Direction);
-	float C = glm::dot(Origin, Origin) - sphere.Radius * sphere.Radius;
-
-
-	// quadratic formula discriminant: b^2 - 4ac
-
-	float discriminant = B * B - 4.0f * A * C;
-
-
-	if (discriminant < 0)//if the discriminant is less than zero return black as the pixel is not part of the sphere
+	const Sphere* closestSphere = nullptr;
+	float hitDistance = std::numeric_limits<float>::max();
+	for (const Sphere& sphere : scene.Spheres)
 	{
-		return glm::vec4(0, 0, 0, 1);
+		// (bx^2 + by^2 + bz^2)t^2 + (2(axbx + ayby + azbz))t + (ax^2 + ay^2 + az^2 -r^2)
+		// a = ray origin
+		// b = ray directrion
+		// r = radius
+		// t = hit distance
+
+		glm::vec3 Origin = ray.Origin - sphere.Position;
+
+		float A = glm::dot(ray.Direction, ray.Direction); //the first part of the quadratic equation
+		float B = 2.0f * glm::dot(Origin, ray.Direction);
+		float C = glm::dot(Origin, Origin) - sphere.Radius * sphere.Radius;
+
+
+		// quadratic formula discriminant: b^2 - 4ac
+
+		float discriminant = B * B - 4.0f * A * C;
+
+
+		if (discriminant < 0.0f)//if the discriminant is less than zero return black as the pixel is not part of the sphere
+			continue;
+
+
+		//Quadratic formula: (-b +- sqrt(discriminant)) / 2a
+
+		float t0 = (-B + sqrt(discriminant)) / (2 * A);//furthest t
+		float t1 = (-B - sqrt(discriminant)) / (2 * A);//closest t
+
+		if (t1 < hitDistance)
+		{
+			hitDistance = t1;
+			closestSphere = &sphere;
+		}
 	}
 
+	if (closestSphere == nullptr)
+		return glm::vec4(0.0f,0.0f,0.0f,1.0f);
 
-	//Quadratic formula: (-b +- sqrt(discriminant)) / 2a
+	/*const Sphere& sphere = scene.Spheres[0];*/
 
-	float t0 = (-B + sqrt(discriminant)) / (2 * A);//furthest t
-	float t1 = (-B - sqrt(discriminant)) / (2 * A);//closest t
-
-	glm::vec3 h0 = Origin + ray.Direction * t0;
-	glm::vec3 h1 = Origin + ray.Direction * t1;
+	
+	glm::vec3 Origin = ray.Origin - closestSphere->Position;
+	glm::vec3 h0 = Origin + ray.Direction * hitDistance;
+	glm::vec3 h1 = Origin + ray.Direction * hitDistance;
 
 	glm::vec3 normal = glm::normalize(h1);
 
@@ -128,7 +140,7 @@ glm::vec4 Renderer::TraceRay(const Ray& ray, const Scene& scene, glm::vec3 Light
 	//}
 	
 	glm::vec3 spherecolor;
-	spherecolor = sphere.Albedo;
+	spherecolor = closestSphere->Albedo;
 	spherecolor *= d;
 	return glm::vec4(spherecolor, 1.0f);
 
