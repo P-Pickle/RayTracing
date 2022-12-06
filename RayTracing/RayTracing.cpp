@@ -52,6 +52,10 @@ public:
 		{
 			Render();
 		}
+		if (ImGui::Button("Add Sphere"))
+		{
+			AddSphere();
+		}
 		ImGui::End();
 
 		ImGui::Begin("Scene");
@@ -99,6 +103,15 @@ public:
 		m_Renderer.Render(m_LightDirection, m_Camera, m_Scene);
 
 		m_LastRenderTime = timer.ElapsedMillis();
+	}
+
+	void AddSphere()
+	{
+		Sphere sphere;
+		sphere.Position = { 0.0f,0.0f,0.0f };
+		sphere.Radius = 0.5f;
+		sphere.Albedo = { 0.0f,1.0f,1.0f };
+		m_Scene.Spheres.push_back(sphere);
 	}
 
 	
