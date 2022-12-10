@@ -17,4 +17,4 @@ Once cloned go into scripts and run setup.bat, this will generate your solution.
 - Light direction
 
 ## Required files
--Vulkan SDK is require to run this program
+- Vulkan SDK is required to run this program
