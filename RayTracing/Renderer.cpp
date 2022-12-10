@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 #include "Walnut/Random.h"
+#include <execution>
 
 namespace Utils {
 	
@@ -24,6 +25,44 @@ void Renderer::Render(glm::vec3 LightDirection, const Camera& camera, const Scen
 	if (m_FrameIndex == 1)
 		memset(m_AccumulationData,0, m_FinalImage->GetHeight() * m_FinalImage->GetWidth() * sizeof(glm::vec4));
 
+#define MT 1
+#if MT
+
+	std::for_each(std::execution::par,m_VerticalIter.begin(), m_VerticalIter.end(),
+		[this, LightDirection](uint32_t y) 
+		{
+#if 1
+			std::for_each(std::execution::par,m_HorizontalIter.begin(), m_HorizontalIter.end(),
+				[this, y, LightDirection](uint32_t x)
+				{
+					glm::vec4 color = PerPixel(x, y, LightDirection);
+
+					m_AccumulationData[x + y * m_FinalImage->GetWidth()] += color;
+					glm::vec4 accumulatedColor = m_AccumulationData[x + y * m_FinalImage->GetWidth()];
+					accumulatedColor /= (float)m_FrameIndex;
+
+					accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+					m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(accumulatedColor);
+				});
+#else
+
+			for (int x = 0; x < m_FinalImage->GetWidth(); x++)
+			{
+
+				glm::vec4 color = PerPixel(x, y, LightDirection);
+
+				m_AccumulationData[x + y * m_FinalImage->GetWidth()] += color;
+				glm::vec4 accumulatedColor = m_AccumulationData[x + y * m_FinalImage->GetWidth()];
+				accumulatedColor /= (float)m_FrameIndex;
+
+				accumulatedColor = glm::clamp(accumulatedColor, glm::vec4(0.0f), glm::vec4(1.0f));
+				m_ImageData[x + y * m_FinalImage->GetWidth()] = Utils::ConvertToRGBA(accumulatedColor);
+
+			}
+#endif
+
+		});
+#else
 	//Render every pixel
 	for (uint32_t y = 0; y < m_FinalImage->GetHeight(); y++)
 	{
@@ -42,6 +81,7 @@ void Renderer::Render(glm::vec3 LightDirection, const Camera& camera, const Scen
 
 		}
 	}
+#endif
 
 	m_FinalImage->SetData(m_ImageData);
 
@@ -72,6 +112,17 @@ void Renderer::OnResize(uint32_t width, uint32_t height)
 
 	delete[] m_AccumulationData;
 	m_AccumulationData = new glm::vec4[width * height];
+
+	m_HorizontalIter.resize(width);
+	m_VerticalIter.resize(height);
+
+	//Fill the vectors
+	for (int x = 0; x < width - 1; x++)
+		m_HorizontalIter[x] = x;
+
+	for (int x = 0; x < height - 1; x++)
+		m_VerticalIter[x] = x;
+
 
 }
 
